@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <title>Teste - Sala</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; }
+        fieldset { margin-bottom: 16px; }
+        #log { border: 1px solid #ccc; height: 200px; overflow-y: auto; padding: 8px; margin-bottom: 8px; }
+        #presenca { border: 1px solid #ccc; padding: 8px; min-height: 24px; }
+        input { padding: 6px; margin-right: 6px; }
+        button { padding: 6px 12px; cursor: pointer; }
+        .msg { margin: 2px 0; }
+        .sistema { color: #888; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<h2>1. Criar ou entrar em uma sala</h2>
+<fieldset>
+    <button id="btnCriar">Criar nova sala</button>
+    <span> ou cole um ID existente: </span>
+    <input id="roomIdInput" placeholder="id da sala" />
+    <br /><br />
+    <input id="username" placeholder="seu nome" value="visitante" />
+    <button id="btnEntrar">Entrar na sala</button>
+</fieldset>
+
+<h2>2. Sala atual: <span id="salaAtual">-</span></h2>
+
+<h3>Presença</h3>
+<div id="presenca">-</div>
+
+<h3>Chat</h3>
+<div id="log"></div>
+<input id="msgInput" placeholder="mensagem" style="width: 70%" disabled />
+<button id="btnEnviar" disabled>Enviar</button>
+
+<script>
+    const API_BASE = "http://localhost:8080";
+    let stompClient = null;
+    let currentRoom = null;
+    let currentUser = null;
+
+    function log(text, isSystem) {
+        const div = document.getElementById("log");
+        const p = document.createElement("div");
+        p.className = "msg" + (isSystem ? " sistema" : "");
+        p.textContent = text;
+        div.appendChild(p);
+        div.scrollTop = div.scrollHeight;
+    }
+
+    document.getElementById("btnCriar").onclick = async () => {
+        const res = await fetch(`${API_BASE}/api/rooms`, { method: "POST" });
+        const roomId = await res.text();
+        document.getElementById("roomIdInput").value = roomId;
+        log(`Sala criada: ${roomId}`, true);
+    };
+
+    document.getElementById("btnEntrar").onclick = () => {
+        const roomId = document.getElementById("roomIdInput").value.trim();
+        const username = document.getElementById("username").value.trim() || "visitante";
+        if (!roomId) {
+            alert("Cole ou crie um ID de sala primeiro.");
+            return;
+        }
+        entrarNaSala(roomId, username);
+    };
+
+    function entrarNaSala(roomId, username) {
+        currentRoom = roomId;
+        currentUser = username;
+        document.getElementById("salaAtual").textContent = roomId;
+
+        const socket = new SockJS(`${API_BASE}/ws`);
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null; // silencia log verboso no console
+
+        stompClient.connect({}, () => {
+            log(`Conectado como "${username}" na sala ${roomId}`, true);
+
+            stompClient.subscribe(`/topic/sala/${roomId}`, (frame) => {
+                const body = JSON.parse(frame.body);
+                log(`${body.sender}: ${body.content}`);
+            }, { username });
+
+            stompClient.subscribe(`/topic/sala/${roomId}/presenca`, (frame) => {
+                const usuarios = JSON.parse(frame.body);
+                document.getElementById("presenca").textContent = usuarios.join(", ") || "-";
+            }, { username });
+
+            document.getElementById("msgInput").disabled = false;
+            document.getElementById("btnEnviar").disabled = false;
+        }, (err) => {
+            log("Erro ao conectar: " + err, true);
+        });
+    }
+
+    document.getElementById("btnEnviar").onclick = enviarMensagem;
+    document.getElementById("msgInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") enviarMensagem();
+    });
+
+    function enviarMensagem() {
+        const input = document.getElementById("msgInput");
+        const content = input.value.trim();
+        if (!content || !stompClient || !currentRoom) return;
+
+        stompClient.send(`/app/sala/${currentRoom}/enviar`, {}, JSON.stringify({
+            sender: currentUser,
+            content: content
+        }));
+        input.value = "";
+    }
+</script>
+</body>
+</html>
