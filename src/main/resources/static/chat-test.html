@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="utf-8" />
-    <title>Teste - Sala</title>
+    <title>Teste - Sala em Tempo Real</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
@@ -20,15 +20,23 @@
 
 <h2>1. Criar ou entrar em uma sala</h2>
 <fieldset>
+    <input id="tagInput" placeholder="tag (ex: hangout)" />
+    <input id="descInput" placeholder="descrição da sala" style="width: 260px" />
     <button id="btnCriar">Criar nova sala</button>
-    <span> ou cole um ID existente: </span>
+    <br /><br />
+    <span>Ou cole um ID existente: </span>
     <input id="roomIdInput" placeholder="id da sala" />
     <br /><br />
     <input id="username" placeholder="seu nome" value="visitante" />
     <button id="btnEntrar">Entrar na sala</button>
 </fieldset>
 
+<h3>Salas ativas</h3>
+<button id="btnListar">Atualizar lista</button>
+<div id="listaSalas" style="margin-top: 8px;">-</div>
+
 <h2>2. Sala atual: <span id="salaAtual">-</span></h2>
+<button id="btnSair" disabled>Sair da sala</button>
 
 <h3>Presença</h3>
 <div id="presenca">-</div>
@@ -54,11 +62,40 @@
     }
 
     document.getElementById("btnCriar").onclick = async () => {
-        const res = await fetch(`${API_BASE}/api/rooms`, { method: "POST" });
+        const tag = document.getElementById("tagInput").value.trim();
+        const description = document.getElementById("descInput").value.trim();
+
+        const res = await fetch(`${API_BASE}/api/rooms`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tag, description })
+        });
         const roomId = await res.text();
         document.getElementById("roomIdInput").value = roomId;
-        log(`Sala criada: ${roomId}`, true);
+        log(`Sala criada: ${roomId}${tag ? ` [${tag}]` : ""}`, true);
+        atualizarListaSalas();
     };
+
+    document.getElementById("btnListar").onclick = atualizarListaSalas;
+
+    async function atualizarListaSalas() {
+        const res = await fetch(`${API_BASE}/api/rooms`);
+        const salas = await res.json();
+        const div = document.getElementById("listaSalas");
+
+        if (salas.length === 0) {
+            div.textContent = "Nenhuma sala ativa.";
+            return;
+        }
+
+        div.innerHTML = "";
+        salas.forEach((sala) => {
+            const p = document.createElement("div");
+            p.style.marginBottom = "4px";
+            p.textContent = `${sala.id} — tag: "${sala.tag}" — desc: "${sala.description}" — ${sala.userCount} pessoa(s)`;
+            div.appendChild(p);
+        });
+    }
 
     document.getElementById("btnEntrar").onclick = () => {
         const roomId = document.getElementById("roomIdInput").value.trim();
@@ -82,11 +119,14 @@
         stompClient.connect({}, () => {
             log(`Conectado como "${username}" na sala ${roomId}`, true);
 
+            // assina o chat da sala
             stompClient.subscribe(`/topic/sala/${roomId}`, (frame) => {
                 const body = JSON.parse(frame.body);
                 log(`${body.sender}: ${body.content}`);
             }, { username });
 
+            // assina a presença da sala pra receber atualizações FUTURAS
+            // (quando outra pessoa entra/sai depois de mim)
             stompClient.subscribe(`/topic/sala/${roomId}/presenca`, (frame) => {
                 const usuarios = JSON.parse(frame.body);
                 document.getElementById("presenca").textContent = usuarios.join(", ") || "-";
@@ -94,26 +134,59 @@
 
             document.getElementById("msgInput").disabled = false;
             document.getElementById("btnEnviar").disabled = false;
+            document.getElementById("btnSair").disabled = false;
+
+            // busca o estado ATUAL via REST, garantido, sem depender de
+            // corrida entre inscrição e broadcast (é isso que resolve o
+            // bug do primeiro usuário não se ver na lista)
+            buscarPresencaInicial(roomId);
         }, (err) => {
             log("Erro ao conectar: " + err, true);
         });
     }
 
-    document.getElementById("btnEnviar").onclick = enviarMensagem;
-    document.getElementById("msgInput").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") enviarMensagem();
-    });
+    document.getElementById("btnSair").onclick = () => {
+        if (!stompClient) return;
 
-    function enviarMensagem() {
-        const input = document.getElementById("msgInput");
-        const content = input.value.trim();
-        if (!content || !stompClient || !currentRoom) return;
+        stompClient.disconnect(() => {
+            log(`Você saiu da sala ${currentRoom}`, true);
 
-        stompClient.send(`/app/sala/${currentRoom}/enviar`, {}, JSON.stringify({
-            sender: currentUser,
-            content: content
-        }));
-        input.value = "";
+            currentRoom = null;
+            currentUser = null;
+            stompClient = null;
+
+            document.getElementById("salaAtual").textContent = "-";
+            document.getElementById("presenca").textContent = "-";
+            document.getElementById("msgInput").disabled = true;
+            document.getElementById("btnEnviar").disabled = true;
+            document.getElementById("btnSair").disabled = true;
+
+            atualizarListaSalas();
+        });
+    };
+
+    async function buscarPresencaInicial(roomId) {
+        const res = await fetch(`${API_BASE}/api/rooms/${roomId}/presence`);
+        const usuarios = await res.json();
+        document.getElementById("presenca").textContent = usuarios.join(", ") || "-";
+
+        document.getElementById("btnEnviar").onclick = enviarMensagem;
+        document.getElementById("msgInput").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") enviarMensagem();
+        });
+
+        function enviarMensagem() {
+            const input = document.getElementById("msgInput");
+            const content = input.value.trim();
+            if (!content || !stompClient || !currentRoom) return;
+
+            stompClient.send(`/app/sala/${currentRoom}/enviar`, {}, JSON.stringify({
+                sender: currentUser,
+                content: content
+            }));
+            input.value = "";
+        }
+
     }
 </script>
 </body>
