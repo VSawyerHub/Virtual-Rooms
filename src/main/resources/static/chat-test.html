@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="utf-8" />
-    <title>Teste - Sala em Tempo Real</title>
+    <title>Teste</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
@@ -114,7 +114,7 @@
 
         const socket = new SockJS(`${API_BASE}/ws`);
         stompClient = Stomp.over(socket);
-        stompClient.debug = null; // silencia log verboso no console
+        stompClient.debug = null;
 
         stompClient.connect({}, () => {
             log(`Conectado como "${username}" na sala ${roomId}`, true);
