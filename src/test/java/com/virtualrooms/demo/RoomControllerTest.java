@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RoomController.class)
@@ -25,33 +26,40 @@ class RoomControllerTest {
     @MockitoBean
     private RoomRepository roomRepository;
 
+    @MockitoBean
+    private PresenceService presenceService;
+
     @Test
-    void createRoom_devolveIdDaSalaSalva() throws Exception {
+    void createRoom_devolveCodigoDaSalaSalva() throws Exception {
         Room saved = new Room();
         saved.setId("sala-123");
+        saved.setCode("ABC123");
         saved.setCreatedAt(LocalDateTime.now());
         when(roomRepository.save(any(Room.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/rooms"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("sala-123"));
+                .andExpect(content().string("ABC123"));
     }
 
     @Test
-    void checkRoom_salaExistente_devolve200() throws Exception {
+    void checkRoom_salaExistente_devolve200_semExporIdInterno() throws Exception {
         Room room = new Room();
         room.setId("sala-existente");
-        when(roomRepository.findById("sala-existente")).thenReturn(Optional.of(room));
+        room.setCode("ABC123");
+        when(roomRepository.findByCode("ABC123")).thenReturn(Optional.of(room));
 
-        mockMvc.perform(get("/api/rooms/sala-existente"))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/rooms/ABC123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("ABC123"))
+                .andExpect(jsonPath("$.id").doesNotExist());
     }
 
     @Test
     void checkRoom_salaInexistente_devolve404() throws Exception {
-        when(roomRepository.findById("nao-existe")).thenReturn(Optional.empty());
+        when(roomRepository.findByCode("NAOEXISTE")).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/rooms/nao-existe"))
+        mockMvc.perform(get("/api/rooms/NAOEXISTE"))
                 .andExpect(status().isNotFound());
     }
 }
