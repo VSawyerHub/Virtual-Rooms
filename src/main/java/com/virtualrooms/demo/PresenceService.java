@@ -19,16 +19,30 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PresenceService {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final RoomRepository roomRepository;
 
     // roomId -> (sessionId -> username)   <-- antes era roomId -> Set<username>
     private final ConcurrentHashMap<String, Map<String, String>> rooms = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<String, Set<String>> sessionRooms = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> sessionUser = new ConcurrentHashMap<>();
 
-    public PresenceService(SimpMessagingTemplate messagingTemplate) {
+
+    public PresenceService(SimpMessagingTemplate messagingTemplate, RoomRepository roomRepository) {
         this.messagingTemplate = messagingTemplate;
+        this.roomRepository = roomRepository;
     }
+
+    public int countUsers(String roomId) {
+        Map<String, String> roomMap = rooms.get(roomId);
+        return roomMap == null ? 0 : roomMap.size();
+    }
+
+    public List<String> getUsers(String roomId) {
+        Map<String, String> roomMap = rooms.get(roomId);
+        return roomMap == null ? new ArrayList<>() : new ArrayList<>(roomMap.values());
+    }
+
+
 
     @EventListener
     public void handleSubscribe(SessionSubscribeEvent event) {
@@ -68,7 +82,6 @@ public class PresenceService {
             username = sessionId;
         }
 
-        sessionUser.put(sessionId, username);
         sessionRooms.computeIfAbsent(sessionId, k -> ConcurrentHashMap.newKeySet()).add(roomId);
         rooms.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>()).put(sessionId, username);
 
@@ -83,7 +96,6 @@ public class PresenceService {
 
     private void removeSession(String sessionId) {
         Set<String> joinedRooms = sessionRooms.remove(sessionId);
-        sessionUser.remove(sessionId);
         if (joinedRooms == null) return;
 
         for (String roomId : joinedRooms) {
@@ -92,6 +104,7 @@ public class PresenceService {
                 roomMap.remove(sessionId);
                 if (roomMap.isEmpty()) {
                     rooms.remove(roomId);
+                    roomRepository.findByCode(roomId).ifPresent(roomRepository::delete);
                 }
             }
             sendPresenceUpdate(roomId);
