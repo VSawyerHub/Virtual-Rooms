@@ -1,5 +1,6 @@
 package com.virtualrooms.demo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
@@ -63,6 +64,7 @@ public class Room {
         return "Sala " + id;
     }
 
+    @JsonIgnore
     public String getId() {
         return id;
     }
