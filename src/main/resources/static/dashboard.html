@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>varanda — dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #141414;
+            --bg-elevated: #1a1a1a;
+            --bg-card: #1e1e1e;
+            --border: rgba(255,255,255,0.14);
+            --border-strong: rgba(255,255,255,0.32);
+            --text-primary: #f5f5f5;
+            --text-secondary: #a8a8a8;
+            --text-tertiary: #6e6e6e;
+            --live: #7fe0b4;
+            --radius-md: 8px;
+            --radius-sm: 6px;
+            --font-display: "Space Grotesk", sans-serif;
+            --font-body: "Inter", sans-serif;
+            --font-mono: "IBM Plex Mono", monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            min-height: 100vh;
+        }
+
+        button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+        :focus-visible { outline: 1px solid var(--text-primary); outline-offset: 2px; }
+
+        input {
+            font-family: inherit;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            font-size: 14px;
+        }
+
+        input::placeholder { color: var(--text-tertiary); }
+        input:focus { border-color: var(--text-primary); outline: none; }
+
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ---------- sidebar ---------- */
+
+        .sidebar {
+            width: 220px;
+            min-width: 220px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 18px 0;
+        }
+
+        .brand {
+            padding: 0 18px 18px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+
+        .brand-mark {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 17px;
+            letter-spacing: -0.01em;
+        }
+
+        .brand-tag {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-tertiary);
+            display: block;
+            margin-top: 3px;
+        }
+
+        .nav-section { padding: 0 10px 14px; }
+
+        .nav-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            padding: 0 8px;
+            margin-bottom: 6px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .nav-item svg { flex-shrink: 0; opacity: 0.8; }
+        .nav-item:hover { border: 1px solid var(--border); color: var(--text-primary); padding: 7px; }
+        .nav-item.active { border: 1px solid var(--border-strong); color: var(--text-primary); padding: 7px; }
+
+        .nav-badge {
+            margin-left: auto;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            border: 1px solid var(--border);
+            padding: 1px 6px;
+            border-radius: 999px;
+            color: var(--text-tertiary);
+        }
+
+        /* ---------- main ---------- */
+
+        .main { flex: 1; padding: 28px 32px 60px; max-width: 1000px; }
+
+        .dash-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+        .dash-head h1 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 26px;
+        }
+
+        .dash-head p { color: var(--text-secondary); font-size: 13px; margin-top: 6px; }
+
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            padding: 9px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-strong);
+            color: var(--text-primary);
+            transition: background 0.15s ease;
+        }
+
+        .btn-outline:hover { background: var(--bg-card); }
+
+        .btn-solid {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--text-primary);
+            color: var(--bg);
+            font-weight: 600;
+            font-size: 13px;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            transition: opacity 0.15s ease;
+        }
+
+        .btn-solid:hover { opacity: 0.85; }
+
+        .create-panel {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            margin-bottom: 26px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        @media (max-width: 780px) {
+            .create-panel { grid-template-columns: 1fr; }
+            .app { flex-direction: column; }
+            .sidebar { width: 100%; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); }
+        }
+
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .room-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            transition: border-color 0.15s ease;
+        }
+
+        .room-card:hover { border-color: var(--border-strong); }
+
+        .room-card-top { display: flex; align-items: center; justify-content: space-between; }
+
+        .room-name { font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+
+        .room-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-tertiary); }
+
+        .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-tertiary); }
+        .live-dot.live { background: var(--live); }
+
+        .room-tag {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 2px 7px;
+            border-radius: 999px;
+            align-self: flex-start;
+        }
+
+        .room-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; min-height: 16px; }
+
+        .room-card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+
+        .room-users { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
+
+        .room-enter { font-size: 11px; font-weight: 600; }
+
+        .empty-state {
+            border: 1px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 30px 18px;
+            text-align: center;
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <div class="sidebar">
+        <div class="brand">
+            <span class="brand-mark">varanda</span>
+            <span class="brand-tag">salas sem conta</span>
+        </div>
+        <div class="nav-section">
+            <div class="nav-label">geral</div>
+            <div class="nav-item active">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+                dashboard
+            </div>
+            <div class="nav-item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21V12h6v9"/><path d="M3 10 12 3l9 7"/></svg>
+                salas
+                <span class="nav-badge" id="liveBadge">0 ao vivo</span>
+            </div>
+            <div class="nav-item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                eventos
+            </div>
+        </div>
+        <div class="nav-section">
+            <div class="nav-label">roadmap</div>
+            <div class="nav-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>fandoms</div>
+            <div class="nav-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 9v6M9 12h6"/></svg>jogos</div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="dash-head">
+            <div>
+                <h1>Salas ao vivo</h1>
+                <p>Cria uma sala, manda o código, entra quem quiser.</p>
+            </div>
+            <button class="btn-outline" id="btnRefresh">↻ atualizar</button>
+        </div>
+
+        <div class="create-panel">
+            <input id="username" placeholder="seu nome" value="visitante" />
+            <input id="titleInput" placeholder="título da sala" />
+            <input id="tagInput" placeholder="tag (hangout, watch, foco)" />
+            <input id="descInput" placeholder="descrição curta" />
+            <button class="btn-solid" id="btnCriar">+ criar sala</button>
+        </div>
+
+        <div class="section-label">salas ativas</div>
+        <div id="roomGrid" class="room-grid"></div>
+    </div>
+</div>
+
+<script>
+    const API = "";
+
+    async function loadRooms() {
+        const grid = document.getElementById("roomGrid");
+        try {
+            const res = await fetch(`${API}/api/rooms`);
+            const rooms = await res.json();
+
+            document.getElementById("liveBadge").textContent =
+                `${rooms.filter(r => r.userCount > 0).length} ao vivo`;
+
+            if (rooms.length === 0) {
+                grid.innerHTML = `<div class="empty-state">Nenhuma sala ativa. Cria a primeira ali em cima ↑</div>`;
+                return;
+            }
+
+            grid.innerHTML = "";
+            rooms.forEach((room) => {
+                const card = document.createElement("div");
+                card.className = "room-card";
+                const live = room.userCount > 0;
+                card.innerHTML = `
+          <div class="room-card-top">
+            <span class="room-name">${room.title || "sala sem nome"}</span>
+            <span class="room-status"><span class="live-dot ${live ? "live" : ""}"></span>${live ? "ao vivo" : "aberta"}</span>
+          </div>
+          <span class="room-tag">${room.tag || "sem tag"}</span>
+          <div class="room-desc">${room.description || "sem descrição"}</div>
+          <div class="room-card-bottom">
+            <span class="room-users">${room.userCount} pessoa${room.userCount === 1 ? "" : "s"} · ${room.code}</span>
+            <span class="room-enter">entrar →</span>
+          </div>
+        `;
+                card.onclick = () => { window.location.href = `room.html?room=${room.code}`; };
+                grid.appendChild(card);
+            });
+        } catch (e) {
+            grid.innerHTML = `<div class="empty-state">Não consegui falar com o servidor. Ele está rodando?</div>`;
+        }
+    }
+
+    document.getElementById("btnRefresh").onclick = loadRooms;
+
+    document.getElementById("btnCriar").onclick = async () => {
+        const title = document.getElementById("titleInput").value.trim();
+        const tag = document.getElementById("tagInput").value.trim();
+        const description = document.getElementById("descInput").value.trim();
+        const username = document.getElementById("username").value.trim() || "visitante";
+
+        const res = await fetch(`${API}/api/rooms`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, tag, description, username })
+        });
+        const code = await res.text();
+        window.location.href = `room.html?code=${code}`;
+    };
+
+    loadRooms();
+</script>
+</body>
+</html>
