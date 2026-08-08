@@ -27,7 +27,8 @@ class PresenceServiceTest {
     @BeforeEach
     void setUp() {
         messagingTemplate = mock(SimpMessagingTemplate.class);
-        presenceService = new PresenceService(messagingTemplate);
+        RoomRepository roomRepository = mock(RoomRepository.class);
+        presenceService = new PresenceService(messagingTemplate, roomRepository);
     }
 
     private SessionSubscribeEvent buildSubscribeEvent(String sessionId, String destination, String username) {
