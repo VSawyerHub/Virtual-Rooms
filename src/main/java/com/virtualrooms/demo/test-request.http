@@ -1,0 +1,11 @@
+### Criar sala com tag e descrição
+POST http://localhost:8080/api/rooms
+Content-Type: application/json
+
+{
+  "tag": "hangout",
+  "description": "sala pra jogar e conversar"
+}
+
+### Listar salas ativas
+GET http://localhost:8080/api/rooms
